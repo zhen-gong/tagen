@@ -1,5 +1,3 @@
-
-
 import unittest
 import time
 from selenium import webdriver
@@ -63,14 +61,17 @@ class AwsUIActions(unittest.TestCase):
     def tearDown(self):
         self.driver.close()
 
-def attemptToGetUserCredentials(account, valid_name, valid_pwd, numFailedAttempts=None):
+def attemptToGetUserCredentials(account, valid_name, valid_pwd):
 
     aAcct = AwsUIActions(account, valid_name)
-    if numFailedAttempts != None:
-        while numFailedAttempts > 0:
-            aAcct.loginAttempt(password="T")
-            numFailedAttempts -= 1
     aAcct.loginAttempt(password=valid_pwd)
 
     aAcct.regenerateUserKeys("us-west-2")
-    #aAcct.tearDown()
+    aAcct.tearDown()
+
+def failUserLogins(account, valid_name, numFailedAttempts):
+    while numFailedAttempts > 0:
+        aAcct = AwsUIActions(account, valid_name)
+        aAcct.loginAttempt(password="T")
+        aAcct.tearDown()
+        numFailedAttempts -= 1
