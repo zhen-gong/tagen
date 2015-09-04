@@ -31,7 +31,7 @@ conf.aws_admin_pwd = "admin_user_password"
 # If False, will bypass the test and use already obtained keys from conf.aws_credentials_file variable.
 conf.get_new_credentials = True
 
-# Enables tests that simulate password brute-force attempt. The value is the number of times simulation is ran.
+# Enables tests that simulate password brute-force attempt. The value is the number of times simulation is run.
 conf.num_failed_attempts = 0
 
 # Instance ID that will be crated and used to testing
