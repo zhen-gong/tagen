@@ -4,7 +4,7 @@ Application Thread Activities Generator
 Generates activities for a set of applications
 
 Configuration:
-# FROM:
+# F:
 #
 # Default configuration file was not checked is to avoid leaks of credentials.
 #
