@@ -7,11 +7,11 @@ from selenium.webdriver.support.ui import WebDriverWait
 class AwsUIActions(unittest.TestCase):
 
 
-    def __init__(self, account_name=None, user_name=None, password=None):
+    def __init__(self, conf, account_name=None, user_name=None, password=None):
         firefoxProfile = webdriver.FirefoxProfile()
 
         firefoxProfile.set_preference('browser.download.folderList', 2)
-        firefoxProfile.set_preference('browser.download.dir', "/tmp/webdriver-downloads")
+        firefoxProfile.set_preference('browser.download.dir', conf.web_download_dir)
         firefoxProfile.set_preference('browser.helperApps.neverAsk.saveToDisk', "application/csv, text/csv")
 
         self.driver = webdriver.Firefox(firefoxProfile)
@@ -61,17 +61,17 @@ class AwsUIActions(unittest.TestCase):
     def tearDown(self):
         self.driver.close()
 
-def attemptToGetUserCredentials(account, valid_name, valid_pwd):
+def attemptToGetUserCredentials(conf, account, valid_name, valid_pwd):
 
-    aAcct = AwsUIActions(account, valid_name)
+    aAcct = AwsUIActions(conf, account, valid_name)
     aAcct.loginAttempt(password=valid_pwd)
 
     aAcct.regenerateUserKeys("us-west-2")
     aAcct.tearDown()
 
-def failUserLogins(account, valid_name, numFailedAttempts):
+def failUserLogins(conf, account, valid_name, numFailedAttempts):
     while numFailedAttempts > 0:
-        aAcct = AwsUIActions(account, valid_name)
+        aAcct = AwsUIActions(conf, account, valid_name)
         aAcct.loginAttempt(password="T")
         aAcct.tearDown()
         numFailedAttempts -= 1

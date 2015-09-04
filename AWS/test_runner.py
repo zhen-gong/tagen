@@ -7,6 +7,7 @@ import traceback
 from boto3.session import Session
 import utils.aws_ui
 import config.config
+import argparse
 
 def getInstanceStatus(conf):
     print "===> TEST: Getting status for instance: " + conf.aws_instance_id
@@ -135,7 +136,6 @@ def deleteTestAccount(conf):
     print "<==="
 
 def printWaiters():
-
     print "===> TEST: Waiters "
     s3 = boto3.client('s3')
     sqs = boto3.client('sqs')
@@ -148,11 +148,11 @@ def printWaiters():
     sqs.waiter_names
     print "<==="
 
-def getUserCredentials(user, pwd, account, file):
+def getUserCredentials(conf, user, pwd, account, file):
     print "===> TEST: Get user credential through UI "
     if os.path.isfile(file):
         os.remove(file)
-    utils.aws_ui.attemptToGetUserCredentials(account, user, pwd)
+    utils.aws_ui.attemptToGetUserCredentials(conf, account, user, pwd)
     print "<==="
     return extractCredentials(user, file)
 
@@ -179,27 +179,35 @@ def extractCredentials(user, file):
                 return string.split(l, ',')
     return None
 
-def loadConfig():
-    with open("config/aws_config.py") as f:
+def loadConfig(location):
+    with open(location) as f:
         content = f.readlines()
     conf = config.config.AwsConfig()
     for l in content:
         exec l
     return conf
 
+def parseArgs():
+   parser = argparse.ArgumentParser()
+   parser.add_argument("-c", "--config", default="config.py", dest="conf_location",
+                       help="Location of the configuration file")
+   return parser.parse_args()
+
 if __name__ == "__main__":
 
-    cf = loadConfig()
-    print "Running test for " + cf.aws_account + "; user: " + cf.aws_user
+    args = parseArgs()
+    print args
+    cf = loadConfig(args.conf_location)
+    print "Running test for " + cf.aws_account + "; user: " + cf.aws_admin_user
     print "Inst: " + cf.aws_instance_id
 
     if cf.num_failed_attempts != 0:
-        utils.aws_ui.failUserLogins(cf.aws_account, cf.aws_user, cf.num_failed_attempts)
+        utils.aws_ui.failUserLogins(cf, cf.aws_account, cf.aws_admin_user, cf.num_failed_attempts)
 
     if cf.get_new_credentials:
-        crd_list = getUserCredentials(cf.aws_user, cf.aws_pwd, cf.aws_account, cf.aws_credentials_file)
+        crd_list = getUserCredentials(cf, cf.aws_admin_user, cf.aws_admin_pwd, cf.aws_account, cf.aws_credentials_file)
     else:
-        crd_list = extractCredentials(cf.aws_user, cf.aws_credentials_file)
+        crd_list = extractCredentials(cf, cf.aws_admin_user, cf.aws_credentials_file)
 
     if crd_list == None:
         print "Missing credentials"
