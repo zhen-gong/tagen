@@ -4,11 +4,11 @@ Application Thread Activities Generator
 Generates activities for a set of applications
 
 Configuration:
-# F:
+# FROM ---->>>
 #
 # Default configuration file was not checked is to avoid leaks of credentials.
 #
-# Copy this block of python code (FROM: :TO) into config file. Default config file name is "./config.py".
+# Copy this block of python code (FROM --->>> <<<---TO) into config file. Default config file name is "./config.py".
 # If location of the config is different from the default, use -c <file name> option to specify a new location/file.
 
 #
@@ -51,4 +51,4 @@ conf.test_bucket_name = "tagen-s3-bucket"
 # UI download destination variables. Unlikely require any changes, unless tests would be run on Windows.
 conf.web_download_dir = "/tmp/webdriver-downloads"
 conf.aws_credentials_file = conf.web_download_dir + "/credentials.csv"
-# :TO
+# <<<--- TO
