@@ -1,5 +1,6 @@
 import unittest
 import time
+import traceback
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
@@ -10,9 +11,12 @@ class AwsUIActions(unittest.TestCase):
     def __init__(self, conf, account_name=None, user_name=None, password=None):
         firefoxProfile = webdriver.FirefoxProfile()
 
+        firefoxProfile.set_preference('browser.download.useDownloadDir', True)
         firefoxProfile.set_preference('browser.download.folderList', 2)
         firefoxProfile.set_preference('browser.download.dir', conf.web_download_dir)
+        firefoxProfile.set_preference('browser.download.manager.showWhenStarting', False)
         firefoxProfile.set_preference('browser.helperApps.neverAsk.saveToDisk', "application/csv, text/csv")
+        firefoxProfile.set_preference('browser.helperApps.neverAsk.openFile', "application/csv, text/csv")
 
         self.driver = webdriver.Firefox(firefoxProfile)
         self.account_name = account_name
@@ -48,15 +52,25 @@ class AwsUIActions(unittest.TestCase):
         elem = driver.find_element_by_xpath("//button[@id='createAccessKey']")
         elem.send_keys(Keys.ENTER)
         time.sleep(5)
-        profile = driver.profile
-        profile.set_preference('browser.download.dir',"/tmp/webdriver-downloads")
-        profile.set_preference('browser.download.manager.showWhenStarting', "false");
-        profile.set_preference('browser.download.folderList', 2)
-        profile.set_preference('browser.helperApps.neverAsk.saveToDisk', "application/csv, text/csv")
         elem = driver.find_element_by_xpath("//button[@id='downloadCredentials']")
         elem.send_keys(Keys.ENTER)
         time.sleep(10)
 
+    def deleteUserKeys(self, location):
+        driver = self.driver
+        driver.get("https://console.aws.amazon.com/iam/home?region=" + location + "#users/" + self.user_name)
+        WebDriverWait(driver, 10);
+        #.until(
+        #    EC.presence_of_element_located((By.CLASS_NAME, "btn btn-primary topMargin createAccessKey"))
+        #)
+        time.sleep(5)
+        self.assertIn("IAM Management", driver.title)
+        elem = driver.find_element_by_xpath("//a[@class='pointer deleteAccessKey']")
+        elem.click()
+        time.sleep(5)
+        elem = driver.find_element_by_xpath("//button[@id='btn_submit']")
+        elem.send_keys(Keys.ENTER)
+        time.sleep(10)
 
     def tearDown(self):
         self.driver.close()
@@ -65,9 +79,13 @@ def attemptToGetUserCredentials(conf, account, valid_name, valid_pwd):
 
     aAcct = AwsUIActions(conf, account, valid_name)
     aAcct.loginAttempt(password=valid_pwd)
-
-    aAcct.regenerateUserKeys("us-west-2")
-    aAcct.tearDown()
+    try:
+        aAcct.deleteUserKeys("us-west-2")
+    except:
+        print "Old key not wound"
+    finally:
+        aAcct.regenerateUserKeys("us-west-2")
+        aAcct.tearDown()
 
 def failUserLogins(conf, account, valid_name, numFailedAttempts):
     while numFailedAttempts > 0:
