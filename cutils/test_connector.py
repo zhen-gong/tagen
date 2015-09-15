@@ -25,8 +25,8 @@ class TestBase(object):
         self.dep_base[test_name] = None
 
     def get_test_context(self, test_name):
-        for t in self.dep_base.keys():
-            print str(t) + ": " + str(self.dep_base[t])
+        #for t in self.dep_base.keys():
+        #    print str(t) + ": " + str(self.dep_base[t])
         t = self.dep_base[test_name]
         if test_name not in self.dep_base.keys():
             return None
@@ -52,11 +52,16 @@ class ATest(object):
     Also reference to a shutdown function.
     """
     name = "Unknown"
-    dep_list = list()
+    description = "Unknown description"
+    dependents = None
+    depend_on = None
     base = None
     passed = False
+    test_obj = None
+
 
     def __init__(self, test_obj, test_base):
+        self.test_obj = test_obj
         self.name = str(test_obj)
         print "Init context for test: " + self.name
         self.base = test_base
@@ -64,38 +69,56 @@ class ATest(object):
             raise Exception("Test base can not be None for test: " +
                             self.name)
         self.base.add_test(self.name, self)
+        self.depend_on = list()
 
-    def add_dependent_test(self, test_obj):
+    def add_as_dependent_on(self, test_obj):
         test_name = str(test_obj)
-        print "Making test " + test_name + " depend on context of " + self.name
-        print "Base: " + str(self.base)
+        print "Making test " + self.name + " depend on context of " + test_name
         t = self.base.get_test_context(test_name)
         if t is None:
             raise Exception("Unknown dependent test: " + test_name)
-        if t.check_is_dependent(self.name):
+        if self.check_is_dependent_of(test_obj):
             raise Exception("Interdependency are not allowed: [" +
                             test_name + ", " + self.name + "]")
-        self.dep_list.append(test_name)
+        t._add_dependent(self.test_obj)
+        self.depend_on.append(test_name)
+
+    def _add_dependent(self, test_obj):
+        test_name = str(test_obj)
+        if self.dependents is None:
+            self.dependents = list()
+        self.dependents.append(test_name)
 
     def get_dep_test_context(self, test_obj):
         test_name = str(test_obj)
-        if test_name not in self.dep_list:
+        if test_name not in self.depend_on:
             raise Exception("Can not get dependent test context. Test " +
                             self.name + " does not depend on: " + test_name)
         return self.base.get_test_context(test_name)
 
-    def check_is_dependent(self, test_obj):
+    def set_passed(self):
+        self.passed = True
+
+    def get_status(self):
+        return self.passed
+
+    def check_is_dependent_of(self, test_obj):
         test_name = str(test_obj)
-        for t in self.dep_list:
+        for t in self.depend_on:
             if t == test_name:
                 return True
         return False
 
+    def print_dependents(self):
+        print "List of dependent tests(" + str(self) + "); obj: " + str(self.dependents)
+
     def shutdown(self):
-        print "Shutting down test " + self.name
-        for t in self.dep_list:
-            self.base.delete_test(t)
+        print ">> Shutting down test " + self.name
+        if self.dependents is not None:
+            for t in self.dependents:
+                self.base.delete_test(t)
         self._shutdown_()
+        print "<< Shutting down test " + self.name
 
     def _run_(self, conf):
         """
@@ -103,16 +126,25 @@ class ATest(object):
         """
 
     def run(self, conf):
-        print "Starting test: " + self.name
+        print "------------------"
+        print "==>>> Starting test: " + self.name
+        print "Description: " + self._get_description_()
         try:
             self._run_(conf)
         except:
-            print "Test " + self.name + " finished with exception"
+            print "vvv! Test " + self.name + " finished with exception !vvv"
             traceback.print_exc()
+            print "^^^^^^"
         finally:
-            print "Test " + self.name + " is done"
+            print "<<<== Test " + self.name + " is done"
 
     def _shutdown_(self):
         """
         Replaced by a real test function
         """
+
+    def _get_description_(self):
+        """
+        Replaced by a real test function
+        """
+        return "Description Unknown"
