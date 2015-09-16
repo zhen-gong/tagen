@@ -18,22 +18,23 @@ class AwsConfig(object):
 
 # AWS account been tested. Most of the time the corporate account would have a name, like "palerra-dev", but a
 # a personal would be a 10-12 digits number.
-conf.aws_account = "aws_test_instance"
+conf.aws_account = "111111111111111"
 
-# A name and a password of the user with admin privileges that will be running the set of tests.
-conf.aws_admin_user = "admin_user"
-conf.aws_admin_pwd = "admin_user_password"
+# Secret and Key of an test admin and name of administrator group
+conf.aws_admin_key_id = "id"
+conf.aws_admin_key_secret = "key"
+conf.aws_admin_group = "admins"
 
 # Should be True for the first time.
 # If True, gets new credential(pair of new keys) for admin test account specified in conf.aws_admin_user variable.
 # If False, will bypass the test and use already obtained keys from conf.aws_credentials_file variable.
-conf.get_new_credentials = True
+conf.get_new_credentials = False
 
 # Enables tests that simulate password brute-force attempt. The value is the number of times simulation is ran.
 conf.num_failed_attempts = 0
 
 # Instance ID that will be crated and used to testing
-conf.aws_instance_id = "i-22e071ea"
+conf.aws_instance_name = "test"
 
 # Test user account and role name created to run tests.
 conf.test_account = "tagen-tester"
@@ -43,7 +44,7 @@ conf.test_role_name = "tagen-role"
 conf.test_bucket_name = "tagen-s3-bucket"
 
 #
-# This section list variables that most likely do not require any changes.
+# Variables most likely will not be changed
 #
 
 # UI download destination variables. Unlikely require any changes, unless tests would be run on Windows.
