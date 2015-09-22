@@ -10,6 +10,7 @@ $bkslash = "\"
 
 #Public Folder Actions
 New-PublicFolder $prefix"PublicFolderName";
+Add-PublicFolderClientPermission -Identity $bkslash$prefix"PublicFolderName" -User testnew -AccessRights Owner -Confirm:$false;
 Get-PublicFolder -Recurse;
 Set-PublicFolder  $bkslash$prefix"PublicFolderName"  -PerUserReadStateEnabled:$false;
 Remove-PublicFolder $bkslash$prefix"PublicFolderName"   -Confirm:$false;
