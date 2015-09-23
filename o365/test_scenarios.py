@@ -92,60 +92,88 @@ echo Done;
 
 
                """
-import utils.cmdctl
-import select
 import os
-import utils
-import re
+import traceback
 
-def configure_auth_header_cmd(conf, altPwd=None):
-    """
-    Returns list of commands need to be run to make user authenticated
-    :param conf: run configuration object
-    :return: list of commands
-    """
-    pwd = altPwd if altPwd != None else conf.admin_pwd()
-    cmd_list = list()
-    cmd_list.append(["$password = ConvertTo-SecureString \"" + pwd + "\" -AsPlainText -Force", None])
-    cmd_list.append(["$credential = New-Object System.Management.Automation.PSCredential \"" + conf.admin_name() + "\",$password", None])
-    cmd_list.append(["$Session = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri https://outlook.office365.com/powershell-liveid/ -Credential $credential -Authentication Basic -AllowRedirection", None])
-    cmd_list.append(["$exePolicy = Get-ExecutionPolicy", None])
-    cmd_list.append(["if ($exePolicy.toString().compareTo(\"Restricted\") -eq 0) { Set-ExecutionPolicy RemoteSigned -force }", None])
-    cmd_list.append(["Import-PSSession $Session -DisableNameChecking", "OK"])
-    return cmd_list
+from cutils.cmdctl import LocalExec, expect_line
+from cutils.config import load_config
+from cutils.others import parse_args
+from cutils.test_connector import BaseTest, TestBase
 
-def configure_auth_footer_cmd(conf):
-    """
-    Returns list of commands need to be run to drop user session
-    :param conf: run configuration object
-    :return: list of commands
-    """
-    cmd_list = list()
-    cmd_list.append(("Remove-PSSession $Session;", None))
-    return cmd_list
 
-def expect_line(ptrn_str, process):
-    cnt = 10
-    output = ""
-    while cnt > 0:
-        cnt -= 1
-        readable, writable, exceptional = select.select([process.stdout, process.stderr], [], [], 10)
-        if len(readable) == 0:
-            continue
-        for s in readable:
-            output += os.read(s, 1024)
-    match_res = None
-    if ptrn_str is not None:
-        pattern = re.compile(ptrn_str)
-        match_res = pattern.match(output)
-    return (output, match_res,
-            match_res if match_res is None else match_res.group(0))
+class CreateSessionTest(BaseTest):
+    conf = None
+
+    def __init__(self, base, altPwd):
+        super(CreateSessionTest, self).__init__(CreateSessionTest, base)
+
+    def _run_(self, conf):
+        self.conf = conf
+        pwd = conf.win_admin_pwd
+        cmd_list = list()
+        cmd_list.append(["$password = ConvertTo-SecureString \"" + pwd + "\" -AsPlainText -Force", None])
+        cmd_list.append(["$credential = New-Object System.Management.Automation.PSCredential \"" + conf.win_admin_user + "\",$password", None])
+        cmd_list.append(["$Session = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri https://outlook.office365.com/powershell-liveid/ -Credential $credential -Authentication Basic -AllowRedirection", None])
+        cmd_list.append(["$exePolicy = Get-ExecutionPolicy", None])
+        cmd_list.append(["if ($exePolicy.toString().compareTo(\"Restricted\") -eq 0) { Set-ExecutionPolicy RemoteSigned -force }", None])
+        cmd_list.append(["Import-PSSession $Session -DisableNameChecking", "OK"])
+        self.cmd_list = cmd_list
+        self.set_passed()
+
+
+    def _shutdown_(self):
+        cmd_list = list()
+        cmd_list.append(("Remove-PSSession $Session;", None))
+
+
+    def _get_description_(self):
+        return "Create new test session"
+
+
+class FailUserLoginTest(BaseTest):
+    conf = None
+
+    def __init__(self, base):
+        super(FailUserLoginTest, self).__init__(FailUserLoginTest, base)
+
+    def _run_(self, conf):
+        self.conf = conf
+
+        super(FailUserLoginTest, self).set_passed()
+
+
+    def _shutdown_(self):
+
+
+    def _get_description_(self):
+        return "Tests new user account creation"
+
+class ATest(BaseTest):
+    conf = None
+
+    def __init__(self, base):
+        super(BaseTest, self).__init__(ATest, base)
+
+    def _run_(self, conf):
+        self.conf = conf
+
+        super(BaseTest, self).set_passed()
+
+
+    def _shutdown_(self):
+
+
+    def _get_description_(self):
+        return "Tests new user account creation"
+
 
 """
 Multiple failed logins to the admin account
 """
+
+
 def win_failed_login_ctl_fn(conf, process):
-    auth_cmd = configure_auth_header_cmd(conf, "test")
+    auth_cmd = configure_auth_header_cmd(conf, altPwd="test")
     for cmd in auth_cmd:
         os.write(process.stdin, cmd[0])
         (output, match_code, match_res) = expect_line(None, process)
@@ -153,23 +181,26 @@ def win_failed_login_ctl_fn(conf, process):
             # No match
             return -1
 
+
 def win_bad_logins(conf):
     login_num = 6
     while login_num > 0:
         login_num -= 1
-        e = utils.cmdctl.LocalExec(conf)
+        e = LocalExec(conf)
         e.exec_command("powershell -Command", ctl_fn=win_failed_login_ctl_fn)
 
 """
 Login to the admin account and delete DPL policy
 """
 
-def configure_DPL_del_cmd(conf, cmd_list):
+
+def configure_dpl_del_cmd(conf, cmd_list):
     if cmd_list is None:
         cmd_list = list()
     cmd_list.append(['Get-DplPolicy', "*", None])
     cmd_list.append(['Remove-DplPolicy  -Confirm:$false -Identity %s', "*", -1])
     return cmd_list
+
 
 def win_rm_dpl_ctl_fn(conf, process):
     auth_cmd = configure_auth_header_cmd(conf)
@@ -186,14 +217,44 @@ def win_rm_dpl_ctl_fn(conf, process):
             # No match
             return -1
 
+
 def win_delete_DPL_policy(conf):
-    e = utils.cmdctl.LocalExec(conf)
+    e = LocalExec(conf)
     e.exec_command("powershell -Command", ctl_fn=win_rm_dpl_ctl_fn)
 
 
 
 
+if __name__ == "__main__":
 
+    args = parse_args()
+    print args
+    cf = load_config(args.conf_location)
+    print "Running test for " + cf.aws_account
+
+    test_base = TestBase()
+
+    # Always test #1
+
+    #
+    # Adding tests after this block
+    #
+    CreateSessionTest(test_base)
+
+
+    #AddUserToGroupTest(test_base)
+    # TODO: write user verification test. Without it, test will continue to fail when it uses new user credentials
+
+    if cf.num_failed_attempts != 0:
+        FailUserLoginTest(test_base)
+
+    # Run added tests
+    try:
+        test_base.exec_tests(cf)
+    except:
+        traceback.print_exc()
+    #exit(1)
+    test_base.done()
 
 
 

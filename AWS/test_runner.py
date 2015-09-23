@@ -1,15 +1,18 @@
-import os, time
-import argparse
+import os
+import time
 import traceback
+
 import boto3
 from boto3.session import Session
 
 from AWS.utils.ui import failUserLogins, attemptToGetUserCredentials
-from AWS.utils.common import extractCredentials, loadConfig
-from cutils.test_connector import ATest, TestBase
+from AWS.utils.common import extractCredentials
+from cutils.config import load_config
+from cutils.others import parse_args
+from cutils.test_connector import BaseTest, TestBase
 
 
-class GetInstanceStatusTest(ATest):
+class GetInstanceStatusTest(BaseTest):
 
     def __init__(self, base):
         super(GetInstanceStatusTest, self).__init__(GetInstanceStatusTest, base)
@@ -34,7 +37,7 @@ class GetInstanceStatusTest(ATest):
         return "Tests return of status for an instance."
 
 
-class GrantPublicAccessToBucketTest(ATest):
+class GrantPublicAccessToBucketTest(BaseTest):
     conf = None
 
     def __init__(self, base):
@@ -69,7 +72,7 @@ class GrantPublicAccessToBucketTest(ATest):
         return "Tests creation/deletion of an S3 bucket"
 
 
-class ListCreateDeleteBucketTest(ATest):
+class ListCreateDeleteBucketTest(BaseTest):
     conf = None
 
     def __init__(self, base):
@@ -121,7 +124,7 @@ class ListCreateDeleteBucketTest(ATest):
         return "Tests creation/deletion of an S3 bucket"
 
 
-class VerifyUserGroupTest(ATest):
+class VerifyUserGroupTest(BaseTest):
     conf = None
 
     def __init__(self, base):
@@ -160,7 +163,7 @@ class VerifyUserGroupTest(ATest):
         return "Verifies that user has been added to the group"
 
 
-class AddUserToGroupTest(ATest):
+class AddUserToGroupTest(BaseTest):
     conf = None
 
     def __init__(self, base):
@@ -206,7 +209,7 @@ class AddUserToGroupTest(ATest):
         return "Tests addition a user to a admin group"
 
 
-class CreateTestAccountTest(ATest):
+class CreateTestAccountTest(BaseTest):
     conf = None
 
     def __init__(self, base):
@@ -262,7 +265,7 @@ class CreateTestAccountTest(ATest):
         return "Tests new user account creation"
 
 
-class PrintWaitersTest(ATest):
+class PrintWaitersTest(BaseTest):
 
     def __init__(self, base):
         super(PrintWaitersTest, self).__init__(PrintWaitersTest, base)
@@ -284,7 +287,7 @@ class PrintWaitersTest(ATest):
 
 
 
-class GetUserCredentialsUITest(ATest):
+class GetUserCredentialsUITest(BaseTest):
     crd_list = None
 
     def __init__(self, base, user, pwd, account, file):
@@ -306,7 +309,7 @@ class GetUserCredentialsUITest(ATest):
 
 
 
-class StartStopInstanceTest(ATest):
+class StartStopInstanceTest(BaseTest):
 
     def __init__(self, base):
         super(StartStopInstanceTest, self).__init__(StartStopInstanceTest, base)
@@ -350,7 +353,7 @@ class StartStopInstanceTest(ATest):
 
 
 
-class FailUserLoginTest(ATest):
+class FailUserLoginTest(BaseTest):
 
     def __init__(self, base):
         super(FailUserLoginTest, self).__init__(FailUserLoginTest, base)
@@ -362,7 +365,7 @@ class FailUserLoginTest(ATest):
         return "Fails user log in multiple times"
 
 
-class SetUpBoto3DefaultSessionTest(ATest):
+class SetUpBoto3DefaultSessionTest(BaseTest):
     crd_list = None
 
     def __init__(self, base):
@@ -379,20 +382,11 @@ class SetUpBoto3DefaultSessionTest(ATest):
         return "Sets up and test default boto3 session"
 
 
-def parseArgs():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-c", "--c"
-                              "onfig", default="config.py", dest="conf_location",
-                       help="Location of the configuration file")
-    return parser.parse_args()
-
-
-
 if __name__ == "__main__":
 
-    args = parseArgs()
+    args = parse_args()
     print args
-    cf = loadConfig(args.conf_location)
+    cf = load_config(args.conf_location)
     print "Running test for " + cf.aws_account
 
     test_base = TestBase()

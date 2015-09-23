@@ -46,7 +46,7 @@ class TestBase(object):
             except:
                 traceback.print_exc()
 
-class ATest(object):
+class BaseTest(object):
     """
     Collection of test objects.
     Also reference to a shutdown function.

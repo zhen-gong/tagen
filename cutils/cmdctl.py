@@ -1,4 +1,6 @@
 import os
+import re
+import select
 import shlex, subprocess
 
 class CmdController(object):
@@ -94,3 +96,21 @@ class LocalExec(object):
             res = self.exec_command(cmd)
             if res != 0:
                 return num
+
+
+def expect_line(ptrn_str, process):
+    cnt = 10
+    output = ""
+    while cnt > 0:
+        cnt -= 1
+        readable, writable, exceptional = select.select([process.stdout, process.stderr], [], [], 10)
+        if len(readable) == 0:
+            continue
+        for s in readable:
+            output += os.read(s, 1024)
+    match_res = None
+    if ptrn_str is not None:
+        pattern = re.compile(ptrn_str)
+        match_res = pattern.match(output)
+    return (output, match_res,
+            match_res if match_res is None else match_res.group(0))

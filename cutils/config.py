@@ -15,6 +15,11 @@ class AwsConfig(object):
 #      ! Values are enclosed in the double or single quotes. !
 #
 
+###########################
+#  AWS config section
+#
+
+
 # AWS account been tested. Most of the time the corporate account would have a name, like "palerra-dev", but a
 # a personal would be a 10-12 digits number.
 conf.aws_account = "111111111111111"
@@ -49,13 +54,24 @@ conf.test_bucket_name = "tagen-s3-bucket"
 # UI download destination variables. Unlikely require any changes, unless tests would be run on Windows.
 conf.web_download_dir = "/tmp/webdriver-downloads"
 conf.aws_credentials_file = conf.web_download_dir + "/credentials.csv"
+
+############################
+# Windows/PowerShell/O365 config section
+#
+conf.win_admin_user = "user"
+conf.win_admin_pwd  = "pwd"
+
 # <<<--- TO
 """
     def __init__(self):
+        #
+        # Init AWS variables
+        #
         self.web_download_dir = "/tmp/webdriver-downloads"
         self.aws_credentials_file = self.web_download_dir + "credentials.csv"
-        self.aws_admin_user = "test1"
-        self.aws_admin_pwd = "test1"
+        self.aws_admin_key_id = "id"
+        self.aws_admin_key_secret = "key"
+        self.aws_admin_group = "admins"
         self.aws_account = "test1"
         self.aws_instance_id = "i-22e071ea"
         self.get_new_credentials = True
@@ -64,3 +80,20 @@ conf.aws_credentials_file = conf.web_download_dir + "/credentials.csv"
         self.test_role_name = "tagen-role"
         self.test_bucket_name = "tagen-s3-bucket"
         self.has_master_key = False
+        #
+        # Init WIN related config variables
+        #
+        self.win_admin_user = "user"
+        self.win_admin_pwd = "test"
+
+
+
+
+
+def load_config(location):
+    with open(location) as f:
+        content = f.readlines()
+    conf = AwsConfig()
+    for l in content:
+        exec l
+    return conf

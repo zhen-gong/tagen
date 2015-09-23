@@ -1,8 +1,6 @@
 import re
 import string
 
-from AWS.config.config import AwsConfig
-
 __author__ = 'avolkov'
 
 
@@ -16,10 +14,3 @@ def extractCredentials(user, file):
     return None
 
 
-def loadConfig(location):
-    with open(location) as f:
-        content = f.readlines()
-    conf = AwsConfig()
-    for l in content:
-        exec l
-    return conf
