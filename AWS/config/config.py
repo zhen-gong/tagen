@@ -1,5 +1,4 @@
 
-
 class AwsConfig(object):
     """
 # FROM ---->>>
@@ -65,4 +64,3 @@ conf.aws_credentials_file = conf.web_download_dir + "/credentials.csv"
         self.test_role_name = "tagen-role"
         self.test_bucket_name = "tagen-s3-bucket"
         self.has_master_key = False
-

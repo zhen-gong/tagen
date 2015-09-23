@@ -1,12 +1,11 @@
-import os
-import json
+import os, time
 import argparse
 import traceback
 import boto3
 from boto3.session import Session
 
+from AWS.utils.ui import failUserLogins, attemptToGetUserCredentials
 from AWS.utils.common import extractCredentials, loadConfig
-import utils.aws_ui
 from cutils.test_connector import ATest, TestBase
 
 
@@ -21,7 +20,8 @@ class GetInstanceStatusTest(ATest):
         # DescribeInstances operation: AWS was not able to validate the provided access credentials
 
         session = boto3.session.Session(aws_access_key_id=conf.aws_admin_key_id,
-                                        aws_secret_access_key=conf.aws_admin_key_secret)
+                                        aws_secret_access_key=conf.aws_admin_key_secret,
+                                        region_name=conf.aws_test_region)
         #iam_clt = session.client('ec2')
         ec2_clt = session.client('ec2')
         response = ec2_clt.describe_instances(
@@ -34,15 +34,54 @@ class GetInstanceStatusTest(ATest):
         return "Tests return of status for an instance."
 
 
+class GrantPublicAccessToBucketTest(ATest):
+    conf = None
+
+    def __init__(self, base):
+        super(GrantPublicAccessToBucketTest, self).__init__(GrantPublicAccessToBucketTest, base)
+        super(GrantPublicAccessToBucketTest, self).add_as_dependent_on(ListCreateDeleteBucketTest)
+
+    def _run_(self, conf):
+        self.conf = conf
+        bucket_id = conf.test_bucket_name
+        session = boto3.session.Session(aws_access_key_id=self.conf.test_user_key_pair.id,
+                                        aws_secret_access_key=self.conf.test_user_key_pair.secret,
+                                        region_name=self.conf.aws_test_region)
+        s3_clt = session.client('s3')
+        s3_res = session.resource('s3')
+        policy = '''{
+  "Version":"2012-10-17",
+  "Statement":[
+    {
+      "Sid":"AddPerm",
+      "Effect":"Allow",
+      "Principal": "*",
+      "Action":["s3:*"],
+      "Resource":["arn:aws:s3:::%s/*"]
+    }
+  ]
+}''' % conf.test_bucket_name
+        response = s3_clt.put_bucket_policy(Bucket=conf.test_bucket_name,
+                                            Policy=policy)
+        print "Resp: " + str(response)
+
+    def _get_description_(self):
+        return "Tests creation/deletion of an S3 bucket"
+
+
 class ListCreateDeleteBucketTest(ATest):
+    conf = None
 
     def __init__(self, base):
         super(ListCreateDeleteBucketTest, self).__init__(ListCreateDeleteBucketTest, base)
+        super(ListCreateDeleteBucketTest, self).add_as_dependent_on(AddUserToGroupTest)
 
     def _run_(self, conf):
+        self.conf = conf
         bucket_id = conf.test_bucket_name
         session = boto3.session.Session(aws_access_key_id=conf.aws_admin_key_id,
-                                        aws_secret_access_key=conf.aws_admin_key_secret)
+                                        aws_secret_access_key=conf.aws_admin_key_secret,
+                                        region_name=conf.aws_test_region)
         s3_clt = session.client('s3')
         s3_res = session.resource('s3')
         #client = boto3.client('s3')
@@ -62,17 +101,64 @@ class ListCreateDeleteBucketTest(ATest):
             response = bucket.create(
                        ACL='private',
                        CreateBucketConfiguration={
-                               'LocationConstraint': 'eu-west-1'
+                               'LocationConstraint': conf.aws_test_region
                        })
             print response
+        super(ListCreateDeleteBucketTest, self).set_passed()
 
+    def _shutdown_(self):
         print "Deleting bucket "
+        bucket_id = self.conf.test_bucket_name
+        session = boto3.session.Session(aws_access_key_id=self.conf.test_user_key_pair.id,
+                                        aws_secret_access_key=self.conf.test_user_key_pair.secret,
+                                        region_name=self.conf.aws_test_region)
+        s3_clt = session.client('s3')
         response = s3_clt.delete_bucket(Bucket=bucket_id)
         super(ListCreateDeleteBucketTest, self).set_passed()
         print response
 
     def _get_description_(self):
         return "Tests creation/deletion of an S3 bucket"
+
+
+class VerifyUserGroupTest(ATest):
+    conf = None
+
+    def __init__(self, base):
+        super(VerifyUserGroupTest, self).__init__(VerifyUserGroupTest, base)
+        super(VerifyUserGroupTest, self).add_as_dependent_on(AddUserToGroupTest)
+
+    def _run_(self, conf):
+        self.conf = conf
+        session = boto3.session.Session(aws_access_key_id=conf.aws_admin_key_id,
+                                        aws_secret_access_key=conf.aws_admin_key_secret,
+                                        region_name=conf.aws_test_region)
+        iam_r = session.resource('iam')
+
+        group = iam_r.Group(conf.aws_admin_group)
+        group.load()
+        found = False
+        for att in range(0, 5):
+            try:
+                users = group.users.all()
+                for u in users:
+                    if u.name == conf.test_account:
+                        found = True
+                        break
+                if not found:
+                    raise Exception("Group not found")
+                break
+            except:
+                time.sleep(3)
+                group.reload()
+        if not found:
+            print "Group does not have user " + conf.test_account
+            return
+        super(VerifyUserGroupTest, self).set_passed()
+
+    def _get_description_(self):
+        return "Verifies that user has been added to the group"
+
 
 class AddUserToGroupTest(ATest):
     conf = None
@@ -84,11 +170,12 @@ class AddUserToGroupTest(ATest):
     def _run_(self, conf):
         self.conf = conf
         dep_t_cont = super(AddUserToGroupTest, self).get_dep_test_context(CreateTestAccountTest)
-        if not dep_t_cont.get_status():
+        if not dep_t_cont.is_passed():
             print "Dependent test failed"
             return
         session = boto3.session.Session(aws_access_key_id=conf.aws_admin_key_id,
-                                        aws_secret_access_key=conf.aws_admin_key_secret)
+                                        aws_secret_access_key=conf.aws_admin_key_secret,
+                                        region_name=conf.aws_test_region)
         iam_clt = session.client('iam')
         # Verify group exists
         response = iam_clt.list_groups()
@@ -105,11 +192,12 @@ class AddUserToGroupTest(ATest):
         super(AddUserToGroupTest, self).set_passed()
 
     def _shutdown_(self):
-        if not super(AddUserToGroupTest, self).get_status():
+        if not super(AddUserToGroupTest, self).is_passed():
             return
         # Remove user from group
         session = boto3.session.Session(aws_access_key_id=self.conf.aws_admin_key_id,
-                                        aws_secret_access_key=self.conf.aws_admin_key_secret)
+                                        aws_secret_access_key=self.conf.aws_admin_key_secret,
+                                        region_name=self.conf.aws_test_region)
         iam_clt = session.client('iam')
         iam_clt.remove_user_from_group(GroupName=self.conf.aws_admin_group,
                                        UserName=self.conf.test_account)
@@ -127,7 +215,8 @@ class CreateTestAccountTest(ATest):
     def _run_(self, conf):
         self.conf = conf
         session = boto3.session.Session(aws_access_key_id=conf.aws_admin_key_id,
-                                        aws_secret_access_key=conf.aws_admin_key_secret)
+                                        aws_secret_access_key=conf.aws_admin_key_secret,
+                                        region_name=conf.aws_test_region)
         iam_r = session.resource('iam')
         current_user = iam_r.CurrentUser()
         print "This account: " + current_user.path + ":" + current_user.user_name + ":" + str(current_user.password_last_used)
@@ -155,7 +244,8 @@ class CreateTestAccountTest(ATest):
         name = self.conf.test_account
         print "Delete test account: " + name
         session = boto3.session.Session(aws_access_key_id=self.conf.aws_admin_key_id,
-                                        aws_secret_access_key=self.conf.aws_admin_key_secret)
+                                        aws_secret_access_key=self.conf.aws_admin_key_secret,
+                                        region_name=self.conf.aws_test_region)
         iam_r = session.resource('iam')
         user = iam_r.User(name)
         try:
@@ -194,11 +284,11 @@ class PrintWaitersTest(ATest):
 
 
 
-class GetUserCredentialsTest(ATest):
+class GetUserCredentialsUITest(ATest):
     crd_list = None
 
     def __init__(self, base, user, pwd, account, file):
-        super(GetUserCredentialsTest, self).__init__(GetUserCredentialsTest, base)
+        super(GetUserCredentialsUITest, self).__init__(GetUserCredentialsUITest, base)
         self.user = user
         self.pwd = pwd
         self.account = account
@@ -207,9 +297,9 @@ class GetUserCredentialsTest(ATest):
     def _run_(self, conf):
         if os.path.isfile(self.file):
             os.remove(self.file)
-        utils.aws_ui.attemptToGetUserCredentials(conf, self.account, self.user, self.pwd)
+        attemptToGetUserCredentials(conf, self.account, self.user, self.pwd)
         self.crd_list = extractCredentials(self.user, self.file)
-        super(GetUserCredentialsTest, self).set_passed()
+        super(GetUserCredentialsUITest, self).set_passed()
 
     def _get_description_(self):
         return "Tests get user credential by loggin into AWS account through Web UI"
@@ -223,7 +313,8 @@ class StartStopInstanceTest(ATest):
 
     def _run_(self, conf):
         session = boto3.session.Session(aws_access_key_id=conf.aws_admin_key_id,
-                                        aws_secret_access_key=conf.aws_admin_key_secret)
+                                        aws_secret_access_key=conf.aws_admin_key_secret,
+                                        region_name=conf.aws_test_region)
         ec2_clt = session.client('ec2')
         #ec2_clt = boto3.client('ec2')
         response = ec2_clt.describe_instances(
@@ -252,7 +343,7 @@ class StartStopInstanceTest(ATest):
         else:
             print "Staring instance"
             response = instance.start(DryRun=False)
-        super(StartStopInstanceTest, self).set_passed()
+        self.set_passed()
 
     def _get_description_(self):
         return "Tests get user credential by log in into AWS account through Web UI"
@@ -265,7 +356,7 @@ class FailUserLoginTest(ATest):
         super(FailUserLoginTest, self).__init__(FailUserLoginTest, base)
 
     def _run_(self, conf):
-        utils.aws_ui.failUserLogins(conf, conf.aws_account, conf.test_account, conf.num_failed_attempts)
+        failUserLogins(conf, conf.aws_account, conf.test_account, conf.num_failed_attempts)
 
     def _get_description_(self):
         return "Fails user log in multiple times"
@@ -281,7 +372,7 @@ class SetUpBoto3DefaultSessionTest(ATest):
         print "Using key pair to set up default session: " + conf.test_user_key_pair.id + ":" + conf.test_user_key_pair.secret
         boto3.setup_default_session(aws_access_key_id=conf.test_user_key_pair.id,
                                     aws_secret_access_key=conf.test_user_key_pair.secret,
-                                    region_name='us-west-2')
+                                    region_name=conf.aws_test_region)
         print "Default session set up to: " + str(boto3._get_default_session())
 
     def _get_description_(self):
@@ -289,10 +380,13 @@ class SetUpBoto3DefaultSessionTest(ATest):
 
 
 def parseArgs():
-   parser = argparse.ArgumentParser()
-   parser.add_argument("-c", "--config", default="config.py", dest="conf_location",
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-c", "--c"
+                              "onfig", default="config.py", dest="conf_location",
                        help="Location of the configuration file")
-   return parser.parse_args()
+    return parser.parse_args()
+
+
 
 if __name__ == "__main__":
 
@@ -325,10 +419,11 @@ if __name__ == "__main__":
     #    crd_list = extractCredentials(cf.aws_admin_user, cf.aws_credentials_file)
 
     #cf.has_master_key = True
-
+    VerifyUserGroupTest(test_base)
     GetInstanceStatusTest(test_base)
     StartStopInstanceTest(test_base)
     ListCreateDeleteBucketTest(test_base)
+    GrantPublicAccessToBucketTest(test_base)
     PrintWaitersTest(test_base)
 
     # Run added tests

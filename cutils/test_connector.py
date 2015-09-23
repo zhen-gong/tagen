@@ -58,7 +58,7 @@ class ATest(object):
     base = None
     passed = False
     test_obj = None
-
+    done = False
 
     def __init__(self, test_obj, test_base):
         self.test_obj = test_obj
@@ -99,7 +99,7 @@ class ATest(object):
     def set_passed(self):
         self.passed = True
 
-    def get_status(self):
+    def is_passed(self):
         return self.passed
 
     def check_is_dependent_of(self, test_obj):
@@ -113,12 +113,18 @@ class ATest(object):
         print "List of dependent tests(" + str(self) + "); obj: " + str(self.dependents)
 
     def shutdown(self):
-        print ">> Shutting down test " + self.name
+        if self.done:
+            return
         if self.dependents is not None:
             for t in self.dependents:
                 self.base.delete_test(t)
-        self._shutdown_()
-        print "<< Shutting down test " + self.name
+        print ">> Shutting down test " + self.name
+        try:
+            self._shutdown_()
+        except:
+            print "Shutdown failed"
+        finally:
+            self.done = True
 
     def _run_(self, conf):
         """
@@ -126,6 +132,11 @@ class ATest(object):
         """
 
     def run(self, conf):
+        for tn in self.depend_on:
+            tc = self.base.get_test_context(tn)
+            if not tc.is_passed():
+                print "Test " + self.name + " is skipped due to failed dependency: " + tn
+                return
         print "------------------"
         print "==>>> Starting test: " + self.name
         print "Description: " + self._get_description_()
