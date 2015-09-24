@@ -9,7 +9,7 @@ from AWS.utils.ui import failUserLogins, attemptToGetUserCredentials
 from AWS.utils.common import extractCredentials
 from cutils.config import load_config
 from cutils.others import parse_args
-from cutils.test_connector import BaseTest, TestBase
+from cutils.test_base import BaseTest, TestBase
 
 
 class GetInstanceStatusTest(BaseTest):
@@ -31,7 +31,7 @@ class GetInstanceStatusTest(BaseTest):
                    DryRun=False,
         )
         print response
-        super(GetInstanceStatusTest, self).set_passed()
+        self.set_passed()
 
     def _get_description_(self):
         return "Tests return of status for an instance."
@@ -42,7 +42,7 @@ class GrantPublicAccessToBucketTest(BaseTest):
 
     def __init__(self, base):
         super(GrantPublicAccessToBucketTest, self).__init__(GrantPublicAccessToBucketTest, base)
-        super(GrantPublicAccessToBucketTest, self).add_as_dependent_on(ListCreateDeleteBucketTest)
+        self.add_as_dependent_on(ListCreateDeleteBucketTest)
 
     def _run_(self, conf):
         self.conf = conf
@@ -77,7 +77,7 @@ class ListCreateDeleteBucketTest(BaseTest):
 
     def __init__(self, base):
         super(ListCreateDeleteBucketTest, self).__init__(ListCreateDeleteBucketTest, base)
-        super(ListCreateDeleteBucketTest, self).add_as_dependent_on(AddUserToGroupTest)
+        self.add_as_dependent_on(AddUserToGroupTest)
 
     def _run_(self, conf):
         self.conf = conf
@@ -107,7 +107,7 @@ class ListCreateDeleteBucketTest(BaseTest):
                                'LocationConstraint': conf.aws_test_region
                        })
             print response
-        super(ListCreateDeleteBucketTest, self).set_passed()
+        self.set_passed()
 
     def _shutdown_(self):
         print "Deleting bucket "
@@ -117,7 +117,7 @@ class ListCreateDeleteBucketTest(BaseTest):
                                         region_name=self.conf.aws_test_region)
         s3_clt = session.client('s3')
         response = s3_clt.delete_bucket(Bucket=bucket_id)
-        super(ListCreateDeleteBucketTest, self).set_passed()
+        self.set_passed()
         print response
 
     def _get_description_(self):
@@ -129,7 +129,7 @@ class VerifyUserGroupTest(BaseTest):
 
     def __init__(self, base):
         super(VerifyUserGroupTest, self).__init__(VerifyUserGroupTest, base)
-        super(VerifyUserGroupTest, self).add_as_dependent_on(AddUserToGroupTest)
+        super.add_as_dependent_on(AddUserToGroupTest)
 
     def _run_(self, conf):
         self.conf = conf
@@ -157,7 +157,7 @@ class VerifyUserGroupTest(BaseTest):
         if not found:
             print "Group does not have user " + conf.test_account
             return
-        super(VerifyUserGroupTest, self).set_passed()
+        self.set_passed()
 
     def _get_description_(self):
         return "Verifies that user has been added to the group"
@@ -192,7 +192,7 @@ class AddUserToGroupTest(BaseTest):
         # Adding user to the group
         iam_clt.add_user_to_group(GroupName=conf.aws_admin_group,
                                   UserName=conf.test_account)
-        super(AddUserToGroupTest, self).set_passed()
+        self.set_passed()
 
     def _shutdown_(self):
         if not super(AddUserToGroupTest, self).is_passed():
@@ -239,7 +239,7 @@ class CreateTestAccountTest(BaseTest):
             conf.test_user_key_pair = user.create_access_key_pair()
             print "Test user key pair: " + conf.test_user_key_pair.id
         user.reload()
-        super(CreateTestAccountTest, self).set_passed()
+        self.set_passed()
         # List a new user
         print "New account: " + user.user_id + ":" + user.user_name + ":" + str(user.password_last_used)
 
@@ -302,7 +302,7 @@ class GetUserCredentialsUITest(BaseTest):
             os.remove(self.file)
         attemptToGetUserCredentials(conf, self.account, self.user, self.pwd)
         self.crd_list = extractCredentials(self.user, self.file)
-        super(GetUserCredentialsUITest, self).set_passed()
+        self.set_passed()
 
     def _get_description_(self):
         return "Tests get user credential by loggin into AWS account through Web UI"

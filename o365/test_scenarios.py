@@ -98,7 +98,7 @@ import traceback
 from cutils.cmdctl import LocalExec, expect_line
 from cutils.config import load_config
 from cutils.others import parse_args
-from cutils.test_connector import BaseTest, TestBase
+from cutils.test_base import BaseTest, TestBase
 
 
 class CreateSessionTest(BaseTest):
