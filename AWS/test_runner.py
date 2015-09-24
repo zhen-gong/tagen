@@ -10,7 +10,8 @@ from AWS.utils.common import extractCredentials
 from cutils.config import load_config
 from cutils.others import parse_args
 from cutils.test_base import BaseTest, TestBase
-
+import boto.rds
+import time
 
 class GetWaitInstanceStatusTest(BaseTest):
 
@@ -419,6 +420,67 @@ class SetUpBoto3DefaultSessionTest(BaseTest):
     def _get_description_(self):
         return "Sets up and test default boto3 session"
 
+DB_NAME = "db-test"
+DB_PASSWORD = 'password'
+DB_USER = 'root'
+SG_NAME = "rds_sg_test"
+class CreateRDSTest(BaseTest):
+
+    def __init__(self, base):
+        super(CreateRDSTest, self).__init__(self, base)
+
+    def teardown_rds(conn):    
+        try:
+            db_inst = conn.get_all_dbinstances(instance_id=DB_NAME)[0]
+        except:
+            print('There was no RDS instance with name %s' % DB_NAME)
+            return
+        
+        print('Removing RDS instance')
+        conn.delete_dbinstance(db_inst.id, skip_final_snapshot=True)
+    
+        while True:
+            try:
+                conn.get_all_dbinstances(instance_id=DB_NAME)[0]
+            except:
+                break
+            else:
+                time.sleep(30)
+                print('Waiting...')
+        
+        try:
+            conn.delete_dbsecurity_group(SG_NAME)
+        except:
+            print('No DB security group %s to delete' % SG_NAME)
+    
+    def _run_(self, conf):
+        print('Connecting RDS')
+        conn = boto.rds.connect_to_region(conf.aws_test_region, aws_access_key_id=conf.test_user_key_pair.id, aws_secret_access_key=conf.test_user_key_pair.secret)
+
+        teardown_rds(conn)
+    
+        print('Creating DB instance')
+        db = conn.create_dbinstance(DB_NAME, 5, 'db.m1.small', DB_USER, DB_PASSWORD)
+        
+        while True:
+            try:
+                db = conn.get_all_dbinstances(instance_id=DB_NAME)[0]
+            except Exception, e:
+                print('Unexpected exception "%s"' % e)
+            else:
+                if db.endpoint is not None and db.status == 'available':
+                    break
+    
+            time.sleep(30)
+            print('Waiting...')
+        
+        print "RDS has been created successfully."
+    
+        teardown_rds(conn)
+
+    def _get_description_(self):
+        return "Tests return of status for new RDS setup."
+        
 
 if __name__ == "__main__":
 
