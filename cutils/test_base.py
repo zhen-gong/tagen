@@ -68,7 +68,7 @@ class BaseTest(object):
         if self.base is None:
             raise Exception("Test base can not be None for test: " +
                             self.name)
-        self.base.add_test(self.name, self)
+        self.base.add_test(self, self)
         self.depend_on = list()
 
     def add_as_dependent_on(self, test_obj):

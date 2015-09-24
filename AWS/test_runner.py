@@ -12,10 +12,10 @@ from cutils.others import parse_args
 from cutils.test_base import BaseTest, TestBase
 
 
-class GetInstanceStatusTest(BaseTest):
+class GetWaitInstanceStatusTest(BaseTest):
 
     def __init__(self, base):
-        super(GetInstanceStatusTest, self).__init__(GetInstanceStatusTest, base)
+        super(GetWaitInstanceStatusTest, self).__init__(self, base)
 
     def _run_(self, conf):
         # This test does not work with default credentials. Need investigation.
@@ -37,11 +37,94 @@ class GetInstanceStatusTest(BaseTest):
         return "Tests return of status for an instance."
 
 
+class WaitInstanceStatusTest(BaseTest):
+    stat_dist = {'running': 16, 'stopped': 22}
+    delay = 5000
+
+    def __init__(self, base, wait_for_status='running', delay=5000):
+        super(WaitInstanceStatusTest, self).__init__(self, base)
+        self.wait_for_status = wait_for_status
+        self.delay = delay
+
+    def _run_(self, conf):
+        session = boto3.session.Session(aws_access_key_id=conf.test_user_key_pair.id,
+                                        aws_secret_access_key=conf.test_user_key_pair.secret,
+                                        region_name=conf.aws_test_region)
+        ec2_rs = session.resource('ec2')
+        instance = ec2_rs.Instance(conf.aws_instance_id)
+        for t in range(0, 5):
+            print "Reloading instance status: " + str(instance)
+            instance.reload()
+            if instance.state['Code'] != self.stat_dist[self.wait_for_status]:
+                time.sleep(self.delay)
+                continue
+        if instance.state['Code'] == self.stat_dist[self.wait_for_status]:
+            self.set_passed()
+
+    def _get_description_(self):
+        return "Wait for instance to get a particular status"
+
+
+class StartStopInstanceTest(BaseTest):
+
+    def __init__(self, base, use_test_acc_cred=True, wait=False, wait_for_status='running'):
+        super(StartStopInstanceTest, self).__init__(self, base)
+        self.underTestUser = use_test_acc_cred
+        self.wait = wait
+        self.wait_for_status = wait_for_status
+
+    def _run_(self, conf):
+        if not self.underTestUser:
+            session = boto3.session.Session(aws_access_key_id=conf.test_user_key_pair.id,
+                                        aws_secret_access_key=conf.test_user_key_pair.secret,
+                                        region_name=conf.aws_test_region)
+        else:
+            session = boto3.session.Session(aws_access_key_id=conf.aws_admin_key_id,
+                                        aws_secret_access_key=conf.aws_admin_key_secret,
+                                        region_name=conf.aws_test_region)
+        ec2_clt = session.client('ec2')
+        response = ec2_clt.describe_instances(
+                           DryRun=False,
+        )
+        instance_id = None
+        if response is not None:
+            if 'Reservations' in response.keys():
+                for res in response['Reservations']:
+                    if 'Instances' in res.keys():
+                        for inst in res['Instances']:
+                            print "Found instance: " + inst['InstanceId']
+                            if inst['InstanceId'] == conf.aws_instance_id:
+                                instance_id = inst['InstanceId']
+                            break
+        if instance_id is None:
+            print "No instance found: " + conf.aws_instance_id
+            return
+
+        ec2_rs = session.resource('ec2')
+        instance = ec2_rs.Instance(instance_id)
+        instance.load()
+        print str(instance)
+        if instance is None:
+            print "Instance was not found"
+            return
+        if instance.state['Code'] == 16: # running
+            print "Instance is running. Stopping"
+            response = instance.stop(DryRun=False)
+        else:
+            print "Staring instance"
+            response = instance.start(DryRun=False)
+        self.set_passed()
+
+    def _get_description_(self):
+        return "Tests get user credential by log in into AWS account through Web UI"
+
+
+
 class GrantPublicAccessToBucketTest(BaseTest):
     conf = None
 
     def __init__(self, base):
-        super(GrantPublicAccessToBucketTest, self).__init__(GrantPublicAccessToBucketTest, base)
+        super(GrantPublicAccessToBucketTest, self).__init__(self, base)
         self.add_as_dependent_on(ListCreateDeleteBucketTest)
 
     def _run_(self, conf):
@@ -76,7 +159,7 @@ class ListCreateDeleteBucketTest(BaseTest):
     conf = None
 
     def __init__(self, base):
-        super(ListCreateDeleteBucketTest, self).__init__(ListCreateDeleteBucketTest, base)
+        super(ListCreateDeleteBucketTest, self).__init__(self, base)
         self.add_as_dependent_on(AddUserToGroupTest)
 
     def _run_(self, conf):
@@ -104,7 +187,7 @@ class ListCreateDeleteBucketTest(BaseTest):
             response = bucket.create(
                        ACL='private',
                        CreateBucketConfiguration={
-                               'LocationConstraint': conf.aws_test_region
+                               'LocationConstraint': 'us-west-1'
                        })
             print response
         self.set_passed()
@@ -128,8 +211,8 @@ class VerifyUserGroupTest(BaseTest):
     conf = None
 
     def __init__(self, base):
-        super(VerifyUserGroupTest, self).__init__(VerifyUserGroupTest, base)
-        super.add_as_dependent_on(AddUserToGroupTest)
+        super(VerifyUserGroupTest, self).__init__(self, base)
+        self.add_as_dependent_on(AddUserToGroupTest)
 
     def _run_(self, conf):
         self.conf = conf
@@ -167,8 +250,8 @@ class AddUserToGroupTest(BaseTest):
     conf = None
 
     def __init__(self, base):
-        super(AddUserToGroupTest, self).__init__(AddUserToGroupTest, base)
-        super(AddUserToGroupTest, self).add_as_dependent_on(CreateTestAccountTest)
+        super(AddUserToGroupTest, self).__init__(self, base)
+        self.add_as_dependent_on(CreateTestAccountTest)
 
     def _run_(self, conf):
         self.conf = conf
@@ -213,7 +296,8 @@ class CreateTestAccountTest(BaseTest):
     conf = None
 
     def __init__(self, base):
-        super(CreateTestAccountTest, self).__init__(CreateTestAccountTest, base)
+        super(CreateTestAccountTest, self).__init__(self, base)
+        print "Self : " + str(self)
 
     def _run_(self, conf):
         self.conf = conf
@@ -268,7 +352,7 @@ class CreateTestAccountTest(BaseTest):
 class PrintWaitersTest(BaseTest):
 
     def __init__(self, base):
-        super(PrintWaitersTest, self).__init__(PrintWaitersTest, base)
+        super(PrintWaitersTest, self).__init__(self, base)
 
     def _run_(self, conf):
         s3 = boto3.client('s3')
@@ -286,12 +370,11 @@ class PrintWaitersTest(BaseTest):
         return "Tests waiters names"
 
 
-
 class GetUserCredentialsUITest(BaseTest):
     crd_list = None
 
     def __init__(self, base, user, pwd, account, file):
-        super(GetUserCredentialsUITest, self).__init__(GetUserCredentialsUITest, base)
+        super(GetUserCredentialsUITest, self).__init__(self, base)
         self.user = user
         self.pwd = pwd
         self.account = account
@@ -308,55 +391,10 @@ class GetUserCredentialsUITest(BaseTest):
         return "Tests get user credential by loggin into AWS account through Web UI"
 
 
-
-class StartStopInstanceTest(BaseTest):
-
-    def __init__(self, base):
-        super(StartStopInstanceTest, self).__init__(StartStopInstanceTest, base)
-
-    def _run_(self, conf):
-        session = boto3.session.Session(aws_access_key_id=conf.aws_admin_key_id,
-                                        aws_secret_access_key=conf.aws_admin_key_secret,
-                                        region_name=conf.aws_test_region)
-        ec2_clt = session.client('ec2')
-        #ec2_clt = boto3.client('ec2')
-        response = ec2_clt.describe_instances(
-                           DryRun=False,
-        )
-        instance_id = None
-        if response is not None:
-            if 'Reservations' in response.keys():
-                for res in response['Reservations']:
-                    if 'Instances' in res.keys():
-                        for inst in res['Instances']:
-                            instance_id = inst['InstanceId']
-                            break
-        if instance_id is None:
-            return
-
-        ec2_rs = session.resource('ec2')
-        instance = ec2_rs.Instance(instance_id)
-        instance.load()
-        print str(instance)
-        if instance is None:
-            print "Instance was not found"
-        if instance.state['Code'] == 16: # running
-            print "Instance is running. Stopping"
-            response = instance.stop(DryRun=False)
-        else:
-            print "Staring instance"
-            response = instance.start(DryRun=False)
-        self.set_passed()
-
-    def _get_description_(self):
-        return "Tests get user credential by log in into AWS account through Web UI"
-
-
-
 class FailUserLoginTest(BaseTest):
 
     def __init__(self, base):
-        super(FailUserLoginTest, self).__init__(FailUserLoginTest, base)
+        super(FailUserLoginTest, self).__init__(self, base)
 
     def _run_(self, conf):
         failUserLogins(conf, conf.aws_account, conf.test_account, conf.num_failed_attempts)
@@ -369,7 +407,7 @@ class SetUpBoto3DefaultSessionTest(BaseTest):
     crd_list = None
 
     def __init__(self, base):
-        super(SetUpBoto3DefaultSessionTest, self).__init__(SetUpBoto3DefaultSessionTest, base)
+        super(SetUpBoto3DefaultSessionTest, self).__init__(self, base)
 
     def _run_(self, conf):
         print "Using key pair to set up default session: " + conf.test_user_key_pair.id + ":" + conf.test_user_key_pair.secret
@@ -414,7 +452,7 @@ if __name__ == "__main__":
 
     #cf.has_master_key = True
     VerifyUserGroupTest(test_base)
-    GetInstanceStatusTest(test_base)
+    GetWaitInstanceStatusTest(test_base)
     StartStopInstanceTest(test_base)
     ListCreateDeleteBucketTest(test_base)
     GrantPublicAccessToBucketTest(test_base)
