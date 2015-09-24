@@ -10,6 +10,7 @@ $bkslash = "\"
 
 #Public Folder Actions
 New-PublicFolder $prefix"PublicFolderName";
+Add-PublicFolderClientPermission -Identity $bkslash$prefix"PublicFolderName" -User testnew -AccessRights Owner -Confirm:$false;
 Get-PublicFolder -Recurse;
 Set-PublicFolder  $bkslash$prefix"PublicFolderName"  -PerUserReadStateEnabled:$false;
 Remove-PublicFolder $bkslash$prefix"PublicFolderName"   -Confirm:$false;
@@ -39,9 +40,15 @@ Remove-ActiveSyncDeviceAccessRule -Identity  "all (DeviceOS)" -Confirm:$false;
 Get-ActiveSyncDevice;
 
 #DLP Policy Action
-New-DlpPolicy -Name $prefix"DLP_*Policy";
+New-DlpPolicy -Name $prefix"DLP_Policy";
 Set-DlpPolicy -Identity $prefix"DLP_Policy" -State disabled;
 Remove-DlpPolicy -Identity $prefix"DLP_Policy" -Confirm:$false;
+
+#send email using different credential
+$password2 = ConvertTo-SecureString "Pandora2014" -AsPlainText -Force
+$credential2 = New-Object System.Management.Automation.PSCredential "test@testappcloud.onmicrosoft.com",$password2
+Send-MailMessage –To test@testappcloud.onmicrosoft.com –From test@testappcloud.onmicrosoft.com  –Subject “Test Phishing Email” –Body “Test Phishing Body” -SmtpServer smtp.office365.com -Credential $credential2 -UseSsl -Port 587
+
 Search-AdminAuditLog -ResultSize 20 ;
 Remove-PSSession $Session;
 echo Done;
