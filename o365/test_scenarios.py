@@ -44,7 +44,15 @@ New-DlpPolicy -Name $prefix"DLP_Policy";
 Set-DlpPolicy -Identity $prefix"DLP_Policy" -State disabled;
 Remove-DlpPolicy -Identity $prefix"DLP_Policy" -Confirm:$false;
 
-#send email using different credential
+#Malware Policy Action
+New-MalwareFilterPolicy -Name $prefix"MalwareFilterPolicy";
+Set-MalwareFilterPolicy -Identity $prefix"MalwareFilterPolicy"  -AdminDisplayName $prefix"Filter";
+New-MalwareFilterRule -Name $prefix"MalwareFilterRule" -MalwareFilterPolicy $prefix"MalwareFilterPolicy" -RecipientDomainIs palerra.com
+Disable-MalwareFilterRule $prefix"MalwareFilterRule" -Confirm:$false;
+Remove-MalwareFilterRule $prefix"MalwareFilterRule" -Confirm:$false;
+Remove-MalwareFilterPolicy -Identity $prefix"MalwareFilterPolicy"  -Confirm:$false;
+
+#Send email using different credential
 $password2 = ConvertTo-SecureString "Pandora2014" -AsPlainText -Force
 $credential2 = New-Object System.Management.Automation.PSCredential "test@testappcloud.onmicrosoft.com",$password2
 Send-MailMessage –To test@testappcloud.onmicrosoft.com –From test@testappcloud.onmicrosoft.com  –Subject “Test Phishing Email” –Body “Test Phishing Body” -SmtpServer smtp.office365.com -Credential $credential2 -UseSsl -Port 587
