@@ -12,6 +12,7 @@ from cutils.others import parse_args
 from cutils.test_base import BaseTest, TestBase
 import boto.rds
 import time
+import boto.ec2
 
 class GetWaitInstanceStatusTest(BaseTest):
 
@@ -423,7 +424,6 @@ class SetUpBoto3DefaultSessionTest(BaseTest):
 DB_NAME = "db-test"
 DB_PASSWORD = 'password'
 DB_USER = 'root'
-SG_NAME = "rds_sg_test"
 class CreateRDSTest(BaseTest):
 
     def __init__(self, base):
@@ -481,6 +481,34 @@ class CreateRDSTest(BaseTest):
     def _get_description_(self):
         return "Tests return of status for new RDS setup."
         
+class CreateEC2SecurityGroupTest(BaseTest):
+
+    def __init__(self, base):
+        super(CreateEC2SecurityGroupTest, self).__init__(self, base)
+
+    def teardown_ec2_security_group(conn):
+        for sg in conn.get_all_security_groups():
+            if sg.name == SG_NAME:
+                print('Delete Security Group')
+                conn.delete_security_group(SG_NAME)
+                break
+    
+    def _run_(self, conf):
+        print('Connecting EC2')
+        conn = boto.ec2.connect_to_region(conf.aws_test_region, aws_access_key_id=conf.test_user_key_pair.id, aws_secret_access_key=conf.test_user_key_pair.secret)
+    
+        teardown_ec2_security_group(conn)
+        
+        print('Creating Security Group')
+        web = conn.create_security_group(SG_NAME, 'Allow ports 80 and 22.')
+        web.authorize('tcp', 80, 80, '0.0.0.0/0')
+        web.authorize('tcp', 22, 22, '0.0.0.0/0')
+        print "Security Group has been created successfully."
+    
+        teardown_ec2_security_group(conn)
+        
+    def _get_description_(self):
+        return "Tests return of status for new Security Group setup."
 
 if __name__ == "__main__":
 
