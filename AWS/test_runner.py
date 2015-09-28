@@ -15,7 +15,6 @@ import time
 import boto.ec2
 import boto
 
-
 class GetWaitInstanceStatusTest(BaseTest):
 
     def __init__(self, base):
@@ -479,7 +478,7 @@ class CreateRDSTest(BaseTest):
         print('Connecting RDS')
         conn = boto.rds.connect_to_region(conf.aws_test_region, aws_access_key_id=conf.test_user_key_pair.id, aws_secret_access_key=conf.test_user_key_pair.secret)
 
-        teardown_rds(conn)
+        self.teardown_rds(conn)
     
         print('Creating DB instance')
         db = conn.create_dbinstance(DB_NAME, 5, 'db.m1.small', DB_USER, DB_PASSWORD)
@@ -498,11 +497,12 @@ class CreateRDSTest(BaseTest):
         
         print "RDS has been created successfully."
     
-        teardown_rds(conn)
+        self.teardown_rds(conn)
 
     def _get_description_(self):
         return "Tests return of status for new RDS setup."
         
+SG_NAME = 'sg-test'
 class CreateEC2SecurityGroupTest(BaseTest):
 
     def __init__(self, base):
@@ -519,7 +519,7 @@ class CreateEC2SecurityGroupTest(BaseTest):
         print('Connecting EC2')
         conn = boto.ec2.connect_to_region(conf.aws_test_region, aws_access_key_id=conf.test_user_key_pair.id, aws_secret_access_key=conf.test_user_key_pair.secret)
     
-        teardown_ec2_security_group(conn)
+        self.teardown_ec2_security_group(conn)
         
         print('Creating Security Group')
         web = conn.create_security_group(SG_NAME, 'Allow ports 80 and 22.')
@@ -527,10 +527,45 @@ class CreateEC2SecurityGroupTest(BaseTest):
         web.authorize('tcp', 22, 22, '0.0.0.0/0')
         print "Security Group has been created successfully."
     
-        teardown_ec2_security_group(conn)
+        self.teardown_ec2_security_group(conn)
         
     def _get_description_(self):
         return "Tests return of status for new Security Group setup."
+
+IAM_USER = "iam-test-user"
+class CreateIAMUserTest(BaseTest):
+
+    def __init__(self, base):
+        super(CreateIAMUserTest, self).__init__(self, base)
+
+    def teardown_iam_user(conn):
+        try:
+            conn.delete_login_profile(IAM_USER)
+        except:
+            pass
+    
+        try:
+            conn.delete_user(IAM_USER)
+            print('Test user removed')
+        except:
+            pass
+    
+    def _run_(self, conf):
+        print('Connecting IAM')
+        conn = boto.iam.IAMConnection(aws_access_key_id=conf.test_user_key_pair.id, aws_secret_access_key=conf.test_user_key_pair.secret)
+        
+        self.teardown_iam_user(conn)
+    
+        print('Creating Test User')
+        conn.create_user(IAM_USER)
+        conn.create_login_profile(IAM_USER, "123456")
+    
+        print "Test user has been created successfully."
+    
+        self.teardown_iam_user(conn)
+        
+    def _get_description_(self):
+        return "Tests return of status for new IAM User setup."
 
 if __name__ == "__main__":
 
@@ -568,6 +603,10 @@ if __name__ == "__main__":
     StartStopInstanceTest(test_base)
     ListCreateDeleteBucketTest(test_base)
     GrantPublicAccessToBucketTest(test_base)
+    CreateRDSTest(test_base)
+    CreateEC2SecurityGroupTest(test_base)
+    CreateIAMUserTest(test_base)
+
     #PrintWaitersTest(test_base)
 
     # Run added tests
