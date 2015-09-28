@@ -14,6 +14,7 @@ import boto.rds
 import time
 import boto.ec2
 import boto
+import boto.iam
 
 class GetWaitInstanceStatusTest(BaseTest):
 
@@ -122,7 +123,6 @@ class StartStopInstanceTest(BaseTest):
         return "Tests get user credential by log in into AWS account through Web UI"
 
 
-
 class GrantPublicAccessToBucketTest(BaseTest):
     conf = None
 
@@ -211,9 +211,12 @@ class ListCreateDeleteBucketTest(BaseTest):
                                         aws_secret_access_key=self.conf.aws_admin_key_secret,
                                         proxy='http://localhost', proxy_port=8118)
         bucket = s3_connection.get_bucket(bucket_id, validate=False)
+        print "Bucket: " + str(bucket)
         exists = s3_connection.lookup(bucket_id)
+        print "Bucket exists: " + bucket_id
         if exists:
             for key in bucket:
+                print "Delete key: " + str(key)
                 key.delete()
             bucket.delete()
 
@@ -450,7 +453,7 @@ class CreateRDSTest(BaseTest):
     def __init__(self, base):
         super(CreateRDSTest, self).__init__(CreateRDSTest, base)
 
-    def teardown_rds(conn):    
+    def teardown_rds(self, conn):
         try:
             db_inst = conn.get_all_dbinstances(instance_id=DB_NAME)[0]
         except:
@@ -502,13 +505,13 @@ class CreateRDSTest(BaseTest):
     def _get_description_(self):
         return "Tests return of status for new RDS setup."
         
-SG_NAME = 'sg-test'
+SG_NAME = 'lsl-tagen-sg-test'
 class CreateEC2SecurityGroupTest(BaseTest):
 
     def __init__(self, base):
         super(CreateEC2SecurityGroupTest, self).__init__(CreateEC2SecurityGroupTest, base)
 
-    def teardown_ec2_security_group(conn):
+    def teardown_ec2_security_group(self, conn):
         for sg in conn.get_all_security_groups():
             if sg.name == SG_NAME:
                 print('Delete Security Group')
@@ -517,7 +520,8 @@ class CreateEC2SecurityGroupTest(BaseTest):
     
     def _run_(self, conf):
         print('Connecting EC2')
-        conn = boto.ec2.connect_to_region(conf.aws_test_region, aws_access_key_id=conf.test_user_key_pair.id, aws_secret_access_key=conf.test_user_key_pair.secret)
+        conn = boto.ec2.connect_to_region(conf.aws_test_region, aws_access_key_id=conf.test_user_key_pair.id,
+                                          aws_secret_access_key=conf.test_user_key_pair.secret)
     
         self.teardown_ec2_security_group(conn)
         
@@ -532,13 +536,13 @@ class CreateEC2SecurityGroupTest(BaseTest):
     def _get_description_(self):
         return "Tests return of status for new Security Group setup."
 
-IAM_USER = "iam-test-user"
+IAM_USER = "lsl-iam-test-user"
 class CreateIAMUserTest(BaseTest):
 
     def __init__(self, base):
         super(CreateIAMUserTest, self).__init__(self, base)
 
-    def teardown_iam_user(conn):
+    def teardown_iam_user(self, conn):
         try:
             conn.delete_login_profile(IAM_USER)
         except:
@@ -552,13 +556,14 @@ class CreateIAMUserTest(BaseTest):
     
     def _run_(self, conf):
         print('Connecting IAM')
-        conn = boto.iam.IAMConnection(aws_access_key_id=conf.test_user_key_pair.id, aws_secret_access_key=conf.test_user_key_pair.secret)
+        conn = boto.iam.IAMConnection(aws_access_key_id=conf.test_user_key_pair.id,
+                                      aws_secret_access_key=conf.test_user_key_pair.secret)
         
         self.teardown_iam_user(conn)
     
         print('Creating Test User')
         conn.create_user(IAM_USER)
-        conn.create_login_profile(IAM_USER, "123456")
+        conn.create_login_profile(IAM_USER, "nmTGWe9nmTGWe9")
     
         print "Test user has been created successfully."
     
@@ -603,9 +608,9 @@ if __name__ == "__main__":
     StartStopInstanceTest(test_base)
     ListCreateDeleteBucketTest(test_base)
     GrantPublicAccessToBucketTest(test_base)
-    CreateRDSTest(test_base)
+    # UBA CreateRDSTest(test_base)
     CreateEC2SecurityGroupTest(test_base)
-    CreateIAMUserTest(test_base)
+    #CreateIAMUserTest(test_base)
 
     #PrintWaitersTest(test_base)
 
