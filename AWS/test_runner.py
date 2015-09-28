@@ -17,7 +17,7 @@ import boto.ec2
 class GetWaitInstanceStatusTest(BaseTest):
 
     def __init__(self, base):
-        super(GetWaitInstanceStatusTest, self).__init__(self, base)
+        super(GetWaitInstanceStatusTest, self).__init__(GetWaitInstanceStatusTest, base)
 
     def _run_(self, conf):
         # This test does not work with default credentials. Need investigation.
@@ -44,7 +44,7 @@ class WaitInstanceStatusTest(BaseTest):
     delay = 5000
 
     def __init__(self, base, wait_for_status='running', delay=5000):
-        super(WaitInstanceStatusTest, self).__init__(self, base)
+        super(WaitInstanceStatusTest, self).__init__(WaitInstanceStatusTest, base)
         self.wait_for_status = wait_for_status
         self.delay = delay
 
@@ -70,7 +70,7 @@ class WaitInstanceStatusTest(BaseTest):
 class StartStopInstanceTest(BaseTest):
 
     def __init__(self, base, use_test_acc_cred=True, wait=False, wait_for_status='running'):
-        super(StartStopInstanceTest, self).__init__(self, base)
+        super(StartStopInstanceTest, self).__init__(StartStopInstanceTest, base)
         self.underTestUser = use_test_acc_cred
         self.wait = wait
         self.wait_for_status = wait_for_status
@@ -126,7 +126,7 @@ class GrantPublicAccessToBucketTest(BaseTest):
     conf = None
 
     def __init__(self, base):
-        super(GrantPublicAccessToBucketTest, self).__init__(self, base)
+        super(GrantPublicAccessToBucketTest, self).__init__(GrantPublicAccessToBucketTest, base)
         self.add_as_dependent_on(ListCreateDeleteBucketTest)
 
     def _run_(self, conf):
@@ -161,7 +161,7 @@ class ListCreateDeleteBucketTest(BaseTest):
     conf = None
 
     def __init__(self, base):
-        super(ListCreateDeleteBucketTest, self).__init__(self, base)
+        super(ListCreateDeleteBucketTest, self).__init__(ListCreateDeleteBucketTest, base)
         self.add_as_dependent_on(AddUserToGroupTest)
 
     def _run_(self, conf):
@@ -213,7 +213,7 @@ class VerifyUserGroupTest(BaseTest):
     conf = None
 
     def __init__(self, base):
-        super(VerifyUserGroupTest, self).__init__(self, base)
+        super(VerifyUserGroupTest, self).__init__(VerifyUserGroupTest, base)
         self.add_as_dependent_on(AddUserToGroupTest)
 
     def _run_(self, conf):
@@ -252,7 +252,7 @@ class AddUserToGroupTest(BaseTest):
     conf = None
 
     def __init__(self, base):
-        super(AddUserToGroupTest, self).__init__(self, base)
+        super(AddUserToGroupTest, self).__init__(AddUserToGroupTest, base)
         self.add_as_dependent_on(CreateTestAccountTest)
 
     def _run_(self, conf):
@@ -298,7 +298,7 @@ class CreateTestAccountTest(BaseTest):
     conf = None
 
     def __init__(self, base):
-        super(CreateTestAccountTest, self).__init__(self, base)
+        super(CreateTestAccountTest, self).__init__(CreateTestAccountTest, base)
         print "Self : " + str(self)
 
     def _run_(self, conf):
@@ -354,7 +354,7 @@ class CreateTestAccountTest(BaseTest):
 class PrintWaitersTest(BaseTest):
 
     def __init__(self, base):
-        super(PrintWaitersTest, self).__init__(self, base)
+        super(PrintWaitersTest, self).__init__(PrintWaitersTest, base)
 
     def _run_(self, conf):
         s3 = boto3.client('s3')
@@ -376,7 +376,7 @@ class GetUserCredentialsUITest(BaseTest):
     crd_list = None
 
     def __init__(self, base, user, pwd, account, file):
-        super(GetUserCredentialsUITest, self).__init__(self, base)
+        super(GetUserCredentialsUITest, self).__init__(GetUserCredentialsUITest, base)
         self.user = user
         self.pwd = pwd
         self.account = account
@@ -396,7 +396,7 @@ class GetUserCredentialsUITest(BaseTest):
 class FailUserLoginTest(BaseTest):
 
     def __init__(self, base):
-        super(FailUserLoginTest, self).__init__(self, base)
+        super(FailUserLoginTest, self).__init__(FailUserLoginTest, base)
 
     def _run_(self, conf):
         failUserLogins(conf, conf.aws_account, conf.test_account, conf.num_failed_attempts)
@@ -409,7 +409,7 @@ class SetUpBoto3DefaultSessionTest(BaseTest):
     crd_list = None
 
     def __init__(self, base):
-        super(SetUpBoto3DefaultSessionTest, self).__init__(self, base)
+        super(SetUpBoto3DefaultSessionTest, self).__init__(SetUpBoto3DefaultSessionTest, base)
 
     def _run_(self, conf):
         print "Using key pair to set up default session: " + conf.test_user_key_pair.id + ":" + conf.test_user_key_pair.secret
@@ -427,7 +427,7 @@ DB_USER = 'root'
 class CreateRDSTest(BaseTest):
 
     def __init__(self, base):
-        super(CreateRDSTest, self).__init__(self, base)
+        super(CreateRDSTest, self).__init__(CreateRDSTest, base)
 
     def teardown_rds(conn):    
         try:
@@ -484,7 +484,7 @@ class CreateRDSTest(BaseTest):
 class CreateEC2SecurityGroupTest(BaseTest):
 
     def __init__(self, base):
-        super(CreateEC2SecurityGroupTest, self).__init__(self, base)
+        super(CreateEC2SecurityGroupTest, self).__init__(CreateEC2SecurityGroupTest, base)
 
     def teardown_ec2_security_group(conn):
         for sg in conn.get_all_security_groups():
