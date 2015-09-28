@@ -13,6 +13,7 @@ from cutils.test_base import BaseTest, TestBase
 import boto.rds
 import time
 import boto.ec2
+import boto.iam
 
 class GetWaitInstanceStatusTest(BaseTest):
 
@@ -481,6 +482,7 @@ class CreateRDSTest(BaseTest):
     def _get_description_(self):
         return "Tests return of status for new RDS setup."
         
+SG_NAME = 'sg-test'
 class CreateEC2SecurityGroupTest(BaseTest):
 
     def __init__(self, base):
@@ -509,6 +511,41 @@ class CreateEC2SecurityGroupTest(BaseTest):
         
     def _get_description_(self):
         return "Tests return of status for new Security Group setup."
+
+IAM_USER = "iam-test-user"
+class CreateIAMUserTest(BaseTest):
+
+    def __init__(self, base):
+        super(CreateIAMUserTest, self).__init__(self, base)
+
+    def teardown_iam_user(conn):
+        try:
+            conn.delete_login_profile(IAM_USER)
+        except:
+            pass
+    
+        try:
+            conn.delete_user(IAM_USER)
+            print('Test user removed')
+        except:
+            pass
+    
+    def _run_(self, conf):
+        print('Connecting IAM')
+        conn = boto.iam.IAMConnection(aws_access_key_id=conf.test_user_key_pair.id, aws_secret_access_key=conf.test_user_key_pair.secret)
+        
+        teardown_iam_user(conn)
+    
+        print('Creating Test User')
+        conn.create_user(IAM_USER)
+        conn.create_login_profile(IAM_USER, "123456")
+    
+        print "Test user has been created successfully."
+    
+        teardown_iam_user(conn)
+        
+    def _get_description_(self):
+        return "Tests return of status for new IAM User setup."
 
 if __name__ == "__main__":
 
