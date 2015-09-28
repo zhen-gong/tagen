@@ -13,6 +13,8 @@ from cutils.test_base import BaseTest, TestBase
 import boto.rds
 import time
 import boto.ec2
+import boto
+
 
 class GetWaitInstanceStatusTest(BaseTest):
 
@@ -131,12 +133,10 @@ class GrantPublicAccessToBucketTest(BaseTest):
 
     def _run_(self, conf):
         self.conf = conf
-        bucket_id = conf.test_bucket_name
         session = boto3.session.Session(aws_access_key_id=self.conf.test_user_key_pair.id,
                                         aws_secret_access_key=self.conf.test_user_key_pair.secret,
                                         region_name=self.conf.aws_test_region)
         s3_clt = session.client('s3')
-        s3_res = session.resource('s3')
         policy = '''{
   "Version":"2012-10-17",
   "Statement":[
@@ -154,7 +154,7 @@ class GrantPublicAccessToBucketTest(BaseTest):
         print "Resp: " + str(response)
 
     def _get_description_(self):
-        return "Tests creation/deletion of an S3 bucket"
+        return "Grant public access to S3 bucket"
 
 
 class ListCreateDeleteBucketTest(BaseTest):
@@ -167,6 +167,8 @@ class ListCreateDeleteBucketTest(BaseTest):
     def _run_(self, conf):
         self.conf = conf
         bucket_id = conf.test_bucket_name
+
+
         session = boto3.session.Session(aws_access_key_id=conf.aws_admin_key_id,
                                         aws_secret_access_key=conf.aws_admin_key_secret,
                                         region_name=conf.aws_test_region)
@@ -185,25 +187,45 @@ class ListCreateDeleteBucketTest(BaseTest):
                     break
         if not have_bucket:
             print "Creating bucket: "
-            bucket = s3_res.Bucket(bucket_id)
-            response = bucket.create(
-                       ACL='private',
-                       CreateBucketConfiguration={
-                               'LocationConstraint': 'us-west-1'
-                       })
+            s3_connection = boto.connect_s3(aws_access_key_id=conf.aws_admin_key_id,
+                                            aws_secret_access_key=conf.aws_admin_key_secret,
+                                            proxy='http://127.0.0.1', proxy_port=8118)
+            response = s3_connection.create_bucket(bucket_id, location='us-west-1')
+            s3_connection.close()
+            #bucket = s3_res.Bucket(bucket_id)
+            #response = bucket.create(
+            #           ACL='private',
+            #           CreateBucketConfiguration={
+            #                   'LocationConstraint': 'us-west-1'
+            #           })
             print response
+        with open("/tmp/hello.txt", "w") as text_file:
+            text_file.write("Hello test string.")
+        for i in range(0, 5):
+            s3_res.Object(bucket_id, str(i) + 'hello.txt').put(Body=open('/tmp/hello.txt', 'rb'))
         self.set_passed()
 
     def _shutdown_(self):
         print "Deleting bucket "
         bucket_id = self.conf.test_bucket_name
-        session = boto3.session.Session(aws_access_key_id=self.conf.test_user_key_pair.id,
-                                        aws_secret_access_key=self.conf.test_user_key_pair.secret,
-                                        region_name=self.conf.aws_test_region)
-        s3_clt = session.client('s3')
-        response = s3_clt.delete_bucket(Bucket=bucket_id)
+        s3_connection = boto.connect_s3(aws_access_key_id=self.conf.aws_admin_key_id,
+                                        aws_secret_access_key=self.conf.aws_admin_key_secret,
+                                        proxy='http://localhost', proxy_port=8118)
+        bucket = s3_connection.get_bucket(bucket_id, validate=False)
+        exists = s3_connection.lookup(bucket_id)
+        if exists:
+            for key in bucket:
+                key.delete()
+            bucket.delete()
+
+        #session = boto3.session.Session(aws_access_key_id=self.conf.test_user_key_pair.id,
+        #                                aws_secret_access_key=self.conf.test_user_key_pair.secret,
+        #                                region_name=self.conf.aws_test_region)
+        #s3_clt = session.client('s3')
+        #response = s3_clt.delete_bucket(Bucket=bucket_id)
+        # Boto 3
         self.set_passed()
-        print response
+        #print response
 
     def _get_description_(self):
         return "Tests creation/deletion of an S3 bucket"
@@ -546,7 +568,7 @@ if __name__ == "__main__":
     StartStopInstanceTest(test_base)
     ListCreateDeleteBucketTest(test_base)
     GrantPublicAccessToBucketTest(test_base)
-    PrintWaitersTest(test_base)
+    #PrintWaitersTest(test_base)
 
     # Run added tests
     try:

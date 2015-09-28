@@ -11,7 +11,7 @@ startTorAndPrivoxy() {
     # Start Privoxy
     v=`ps -ef | grep privoxy | grep -v grep | cut -f2`
     if [ -z "`echo $v | grep no-daemon`" ]; then
-        sudo /usr/sbin/privoxy /etc/privoxy/config
+        sudo /usr/local/sbin/privoxy /etc/privoxy/config
     fi
 
     # Start Tor
@@ -45,12 +45,12 @@ stopUsingProxy() {
 }
 
 startTorAndPrivoxy
-
+exit 1
 if [ "$1" == user_proxy]; then
      startUsingProxy
 fi
 echo "Starting python..."
 python AWS/test_runner.py
 echo "All tests are done."
-stopUsingProxy
+#stopUsingProxy
 

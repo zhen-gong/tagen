@@ -25,8 +25,8 @@ class TestBase(object):
         self.dep_base[test_name] = None
 
     def get_test_context(self, test_name):
-        for t in self.dep_base.keys():
-            print str(t) + ": " + str(self.dep_base[t])
+        #for t in self.dep_base.keys():
+        #    print str(t) + ": " + str(self.dep_base[t])
         t = self.dep_base[test_name]
         if test_name not in self.dep_base.keys():
             return None
