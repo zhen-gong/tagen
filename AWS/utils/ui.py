@@ -88,8 +88,8 @@ def attemptToGetUserCredentials(conf, account, valid_name, valid_pwd):
         aAcct.tearDown()
 
 def failUserLogins(conf, account, valid_name, numFailedAttempts):
+    aAcct = AwsUIActions(conf, account, valid_name)
     while numFailedAttempts > 0:
-        aAcct = AwsUIActions(conf, account, valid_name)
         aAcct.loginAttempt(password="T")
         aAcct.tearDown()
         numFailedAttempts -= 1
