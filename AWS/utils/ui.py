@@ -8,7 +8,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 class AwsUIActions(unittest.TestCase):
 
 
-    def __init__(self, conf, account_name=None, user_name=None, password=None):
+    def __init__(self, conf, account_name=None, user_name=None, password=None, proxy=0, proxy_ip=None, proxy_port=None):
         firefoxProfile = webdriver.FirefoxProfile()
 
         firefoxProfile.set_preference('browser.download.useDownloadDir', True)
@@ -17,7 +17,11 @@ class AwsUIActions(unittest.TestCase):
         firefoxProfile.set_preference('browser.download.manager.showWhenStarting', False)
         firefoxProfile.set_preference('browser.helperApps.neverAsk.saveToDisk', "application/csv, text/csv")
         firefoxProfile.set_preference('browser.helperApps.neverAsk.openFile', "application/csv, text/csv")
-
+        if proxy == 1:
+            firefoxProfile.set_preference('network.proxy.type', proxy)
+            firefoxProfile.set_preference('network.proxy.http', proxy_ip)
+            firefoxProfile.set_preference('network.proxy.http_port', proxy_port)
+            
         self.driver = webdriver.Firefox(firefoxProfile)
         self.account_name = account_name
         self.user_name = user_name
