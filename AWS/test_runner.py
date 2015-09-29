@@ -566,10 +566,13 @@ class CreateIAMUserTest(BaseTest):
         print('Creating Test User')
         conn.create_user(IAM_USER)
         conn.create_login_profile(IAM_USER, "nmTGWe9nmTGWe9")
-    
+        time.sleep(10) #ensure user creation complete on AWS side
         print "Test user has been created successfully."
     
-        self.teardown_iam_user(conn)
+        print('Connecting IAM via Proxy')
+        conn2 = boto.iam.IAMConnection(aws_access_key_id=conf.test_user_key_pair.id,
+                                      aws_secret_access_key=conf.test_user_key_pair.secret, is_secure=True, proxy="52.18.122.207", proxy_port="8888")
+        self.teardown_iam_user(conn2)
         
     def _get_description_(self):
         return "Tests return of status for new IAM User setup."
@@ -610,9 +613,9 @@ if __name__ == "__main__":
     StartStopInstanceTest(test_base)
     ListCreateDeleteBucketTest(test_base)
     GrantPublicAccessToBucketTest(test_base)
-    # UBA CreateRDSTest(test_base)
-    CreateEC2SecurityGroupTest(test_base)
-    #CreateIAMUserTest(test_base)
+    # UBA CreateRDSTest(test_base) #to cover UBA test case
+    CreateEC2SecurityGroupTest(test_base) #test weak security group and policy violation
+    CreateIAMUserTest(test_base) #test weak user password, IP hopping via proxy
 
     #PrintWaitersTest(test_base)
 
