@@ -557,6 +557,12 @@ class CreateIAMUserTest(BaseTest):
             pass
     
     def _run_(self, conf):
+        print 'Update IAM Password Policy'
+        session = boto3.session.Session(aws_access_key_id=conf.test_user_key_pair.id,
+                                      aws_secret_access_key=conf.test_user_key_pair.secret)
+        iam = session.client('iam')
+        iam.update_account_password_policy(MinimumPasswordLength=6,RequireSymbols=False,RequireNumbers=False,RequireUppercaseCharacters=False,RequireLowercaseCharacters=False,AllowUsersToChangePassword=False,MaxPasswordAge=90,PasswordReusePrevention=3,HardExpiry=False)
+
         print('Connecting IAM')
         conn = boto.iam.IAMConnection(aws_access_key_id=conf.test_user_key_pair.id,
                                       aws_secret_access_key=conf.test_user_key_pair.secret)
