@@ -97,3 +97,11 @@ def failUserLogins(conf, account, valid_name, numFailedAttempts):
         aAcct.loginAttempt(password="T")
         aAcct.tearDown()
         numFailedAttempts -= 1
+    
+    #same login test via Tokyo proxy
+    aAcct = AwsUIActions(conf, account, valid_name, proxy=1, proxy_ip="52.68.248.134", proxy_port=8888)
+    while numFailedAttempts > 0:
+        aAcct.loginAttempt(password="T")
+        aAcct.tearDown()
+        numFailedAttempts -= 1   
+    
