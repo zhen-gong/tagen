@@ -186,9 +186,10 @@ class ListCreateDeleteBucketTest(BaseTest):
                     break
         if not have_bucket:
             print "Creating bucket: "
+            prl = self.conf.http_proxy.split(':') if self.conf.http_proxy else (None, None)
             s3_connection = boto.connect_s3(aws_access_key_id=conf.aws_admin_key_id,
                                             aws_secret_access_key=conf.aws_admin_key_secret,
-                                            proxy='http://127.0.0.1', proxy_port=8118)
+                                            proxy=prl[0], proxy_port=prl[1])
             response = s3_connection.create_bucket(bucket_id, location='us-west-1')
             s3_connection.close()
             #bucket = s3_res.Bucket(bucket_id)
@@ -207,9 +208,10 @@ class ListCreateDeleteBucketTest(BaseTest):
     def _shutdown_(self):
         print "Deleting bucket "
         bucket_id = self.conf.test_bucket_name
+        prl = self.conf.http_proxy.split(':') if self.conf.http_proxy else (None, None)
         s3_connection = boto.connect_s3(aws_access_key_id=self.conf.aws_admin_key_id,
                                         aws_secret_access_key=self.conf.aws_admin_key_secret,
-                                        proxy='http://localhost', proxy_port=8118)
+                                        proxy=prl[0], proxy_port=prl[1])
         bucket = s3_connection.get_bucket(bucket_id, validate=False)
         print "Bucket: " + str(bucket)
         exists = s3_connection.lookup(bucket_id)

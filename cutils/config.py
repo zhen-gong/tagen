@@ -80,6 +80,7 @@ conf.win_admin_pwd  = "pwd"
         self.test_role_name = "tagen-role"
         self.test_bucket_name = "tagen-s3-bucket"
         self.has_master_key = False
+        self.http_proxy = 'http://localhost:8118'
         #
         # Init WIN related config variables
         #
