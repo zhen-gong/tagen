@@ -92,16 +92,20 @@ def attemptToGetUserCredentials(conf, account, valid_name, valid_pwd):
         aAcct.tearDown()
 
 def failUserLogins(conf, account, valid_name, numFailedAttempts):
+    print "Start failed login..."
     aAcct = AwsUIActions(conf, account, valid_name)
-    while numFailedAttempts > 0:
+    count = numFailedAttempts
+    while count > 0:
         aAcct.loginAttempt(password="T")
-        aAcct.tearDown()
-        numFailedAttempts -= 1
+        count -= 1
+    aAcct.tearDown()
     
     #same login test via Tokyo proxy
+    print "Start failed login via Proxy..."
     aAcct = AwsUIActions(conf, account, valid_name, proxy=1, proxy_ip="52.68.248.134", proxy_port=8888)
-    while numFailedAttempts > 0:
+    count = numFailedAttempts
+    while count > 0:
         aAcct.loginAttempt(password="T")
-        aAcct.tearDown()
-        numFailedAttempts -= 1   
+        count -= 1
+    aAcct.tearDown()
     
