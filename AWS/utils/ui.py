@@ -21,6 +21,8 @@ class AwsUIActions(unittest.TestCase):
             firefoxProfile.set_preference('network.proxy.type', proxy)
             firefoxProfile.set_preference('network.proxy.http', proxy_ip)
             firefoxProfile.set_preference('network.proxy.http_port', proxy_port)
+            firefoxProfile.set_preference('network.proxy.ssl', proxy_ip)
+            firefoxProfile.set_preference('network.proxy.ssl_port', proxy_port)
             
         self.driver = webdriver.Firefox(firefoxProfile)
         self.account_name = account_name
