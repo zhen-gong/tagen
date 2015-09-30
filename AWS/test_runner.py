@@ -187,7 +187,6 @@ class ListCreateDeleteBucketTest(BaseTest):
         if not have_bucket:
             print "Creating bucket: "
             prl = self.conf.http_proxy.split(':') if self.conf.http_proxy else (None, None)
-            print "Proxy: " + proxy + ":" + "->" + proxy_port
             s3_connection = boto.connect_s3(aws_access_key_id=conf.aws_admin_key_id,
                                             aws_secret_access_key=conf.aws_admin_key_secret,
                                             proxy=prl[0], proxy_port=prl[1])
